@@ -23,6 +23,9 @@
     --warning: #d97706; --warning-soft: #fffbeb;
     --radius: 10px; --radius-sm: 6px;
     --card-top-highlight: rgba(0,0,0,0.02);
+    --kpi-top-highlight: rgba(0,0,0,0.04);
+    --glass-bg: rgba(255,255,255,0.68); --glass-border: rgba(0,0,0,0.06);
+    --dot-color: rgba(0,0,0,0.045);
     --ease: cubic-bezier(.16,.8,.34,1);
     --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
@@ -41,18 +44,39 @@
     --negative: #f43f5e; --negative-soft: rgba(244,63,94,0.14);
     --warning: #f59e0b; --warning-soft: rgba(245,158,11,0.14);
     --card-top-highlight: rgba(255,255,255,0.06);
+    --kpi-top-highlight: rgba(255,255,255,0.12);
+    --glass-bg: rgba(18,18,21,0.62); --glass-border: rgba(255,255,255,0.08);
+    --dot-color: rgba(255,255,255,0.07);
   }
 
   html, body { height: 100%; }
-  body { margin:0; background:var(--bg); color:var(--text); font-family:var(--font-sans); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:var(--font-sans); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased; position:relative; }
+  body::before {
+    content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
+    background-size: 24px 24px;
+    -webkit-mask-image: radial-gradient(ellipse 100% 60% at 50% 0%, black 30%, transparent 78%);
+    mask-image: radial-gradient(ellipse 100% 60% at 50% 0%, black 30%, transparent 78%);
+  }
+  .aurora { display:none; position:fixed; top:-160px; width:560px; height:560px; border-radius:50%; filter:blur(120px); pointer-events:none; z-index:0; }
+  :root[data-theme="dark"] .aurora { display:block; }
+  .aurora-left { left:-180px; background:radial-gradient(circle, rgba(16,185,129,0.55), transparent 70%); opacity:0.06; }
+  .aurora-right { right:-180px; background:radial-gradient(circle, rgba(99,102,241,0.6), transparent 70%); opacity:0.08; }
   .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
   button, input, select { font-family: inherit; font-size: inherit; color: inherit; }
   button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-  .app { max-width: 1200px; margin: 0 auto; padding: 20px 24px 80px; }
+  .app { max-width: 1200px; margin: 0 auto; padding: 20px 24px 80px; position:relative; z-index:1; }
   @media (max-width: 640px) { .app { padding: 16px 14px 60px; } }
 
-  .topbar { display:flex; align-items:center; justify-content:space-between; padding:14px 2px 22px; }
+  .vital-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 10px 5px 8px; border-radius:100px; background:var(--surface-2); border:1px solid var(--border); font-size:10.5px; color:var(--text-secondary); font-family:var(--font-mono); white-space:nowrap; }
+  .vital-dot { width:6px; height:6px; border-radius:50%; background:var(--positive); position:relative; flex-shrink:0; }
+  .vital-dot::after { content:''; position:absolute; inset:-3px; border-radius:50%; background:var(--positive); opacity:.55; animation: pulse-ring 2s ease-out infinite; }
+  @keyframes pulse-ring { 0% { transform:scale(.6); opacity:.6; } 100% { transform:scale(2.4); opacity:0; } }
+  @media (max-width: 560px) { .vital-pill { display:none; } }
+
+  .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 2px 22px; flex-wrap:wrap; }
+  .topbar-left { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
   .brand { display:flex; align-items:center; gap:9px; font-weight:600; font-size:15px; letter-spacing:-0.01em; }
   .brand-mark { width:22px; height:22px; border-radius:6px; background:linear-gradient(135deg,var(--accent),#a78bfa); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; font-weight:700; color:white; }
   .theme-toggle { background:var(--surface-2); border:1px solid var(--border); border-radius:100px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-secondary); transition: color .15s, border-color .15s; }
@@ -69,7 +93,10 @@
   .panel { display:none; }
   .panel.active { display:block; }
 
-  .dropzone { border:1.5px dashed var(--border); border-radius:var(--radius); padding:56px 24px; text-align:center; background:var(--surface); cursor:pointer; transition: border-color .15s, background .15s; }
+  .dropzone { border:1.5px dashed var(--border); border-radius:var(--radius); padding:56px 24px; text-align:center; background:var(--surface); cursor:pointer; transition: border-color .15s, background .15s; position:relative; overflow:hidden; }
+  .dropzone-illustration { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; opacity:.55; }
+  .particle { position:absolute; width:3px; height:3px; border-radius:50%; background:var(--accent-strong); opacity:.3; pointer-events:none; animation: float-particle 5s ease-in-out infinite; }
+  @keyframes float-particle { 0%,100% { transform:translateY(0); opacity:.15; } 50% { transform:translateY(-16px); opacity:.55; } }
   .dropzone:hover, .dropzone.drag { border-color:var(--accent); background:var(--accent-soft); }
   .dropzone svg { color:var(--text-tertiary); margin-bottom:14px; }
   .dropzone h3 { margin:0 0 6px; font-size:15px; font-weight:600; }
@@ -158,7 +185,7 @@
   #insightsChevron { transition: transform .15s; }
 
   /* Executive Toolbar (unified template segment + focus dropdown + icon actions) */
-  .exec-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .exec-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; flex-wrap:wrap; background:var(--glass-bg); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border:1px solid var(--glass-border); border-radius:14px; padding:8px 10px; }
   .exec-toolbar-left { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .exec-toolbar-right { display:flex; align-items:center; gap:6px; flex-shrink:0; }
 
@@ -220,8 +247,9 @@
   @media (max-width: 768px) { .kpi-dots { display:flex; } }
   .kpi-dot { width:6px; height:6px; border-radius:50%; background:var(--border); transition: all .15s var(--ease); }
   .kpi-dot.active { background:var(--accent-strong); width:16px; border-radius:3px; }
-  .kpi-card { background:var(--surface); border:1px solid var(--border); border-top-color:var(--card-top-highlight); border-radius:var(--radius); padding:16px 18px; transition: border-color .15s var(--ease), transform .15s var(--ease); }
-  .kpi-card:hover { border-color:var(--text-tertiary); }
+  .kpi-card { background:var(--surface); border:1px solid var(--border); border-top-color:var(--kpi-top-highlight); border-radius:var(--radius); padding:16px 18px; transition: border-color .15s var(--ease), box-shadow .15s var(--ease); animation: kpi-fade-in .3s var(--ease) both; }
+  .kpi-card:hover { border-color:var(--text-tertiary); box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 6px 20px rgba(0,0,0,.25); }
+  @keyframes kpi-fade-in { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
   .kpi-card .lbl { font-size:12px; color:var(--text-secondary); margin-bottom:8px; }
   .kpi-card .val { font-family:var(--font-mono); font-size:22px; font-weight:600; letter-spacing:-0.01em; }
 
@@ -277,7 +305,8 @@
   ::selection { background:var(--accent-soft); }
 
   /* Copilot FAB + drawer */
-  .copilot-fab { position:fixed; bottom: calc(22px + env(safe-area-inset-bottom,0px)); right:22px; width:50px; height:50px; border-radius:50%; background:var(--accent); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,.28); z-index:60; }
+  .copilot-fab { position:fixed; bottom: calc(22px + env(safe-area-inset-bottom,0px)); right:22px; width:50px; height:50px; border-radius:50%; background:var(--glass-bg); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); color:var(--accent-strong); border:1px solid var(--glass-border); display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,.28); z-index:60; transition: border-color .15s var(--ease), transform .15s var(--ease); }
+  .copilot-fab:hover { transform:scale(1.05); border-color:var(--accent-strong); }
   .copilot-fab:hover { filter:brightness(1.08); }
   .drawer-overlay { position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:70; display:none; }
   .drawer-overlay.open { display:block; }
@@ -390,6 +419,7 @@
   .vac-status-azul td:first-child { border-left-color:#38bdf8; }
   .vac-status-amarelo td:first-child { border-left-color:var(--warning); }
   .vac-status-laranja td:first-child { border-left-color:#fb923c; }
+  .avatar-chip { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-size:9px; font-weight:700; color:#fff; margin-right:7px; flex-shrink:0; vertical-align:middle; text-shadow:0 1px 1px rgba(0,0,0,.25); letter-spacing:-0.02em; }
   .vac-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:100px; font-size:11px; font-weight:600; white-space:nowrap; }
   .vac-badge.verde { background:var(--positive-soft); color:var(--positive); }
   .vac-badge.azul { background:rgba(56,189,248,.14); color:#38bdf8; }
@@ -402,10 +432,15 @@
 </style>
 </head>
 <body>
+<div class="aurora aurora-left" aria-hidden="true"></div>
+<div class="aurora aurora-right" aria-hidden="true"></div>
 <div class="app">
 
   <div class="topbar">
-    <div class="brand"><span class="brand-mark">S</span> Settei BI</div>
+    <div class="topbar-left">
+      <div class="brand"><span class="brand-mark">S</span> Settei BI</div>
+      <span class="vital-pill"><span class="vital-dot"></span> Motor DuckDB Local — 100% Privado</span>
+    </div>
     <button class="theme-toggle" id="themeToggle" aria-label="Alternar tema" title="Alternar tema"></button>
   </div>
 
@@ -418,9 +453,34 @@
   <!-- STEP 1 -->
   <section class="panel active" id="panel-1">
     <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Enviar arquivo CSV ou XLSX">
-      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-      <h3>Solte um CSV ou XLSX aqui</h3>
-      <p>ou clique para selecionar um arquivo (até ~50 mil linhas)</p>
+      <svg class="dropzone-illustration" viewBox="0 0 400 140" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <g stroke="var(--accent-strong)" stroke-width="1" opacity="0.35" fill="none">
+          <line x1="60" y1="110" x2="150" y2="70"/>
+          <line x1="150" y1="70" x2="200" y2="90"/>
+          <line x1="200" y1="90" x2="260" y2="55"/>
+          <line x1="260" y1="55" x2="340" y2="95"/>
+          <line x1="150" y1="70" x2="120" y2="30"/>
+        </g>
+        <g fill="var(--accent-strong)">
+          <circle cx="60" cy="110" r="4" opacity="0.55"/>
+          <circle cx="150" cy="70" r="5" opacity="0.7"/>
+          <circle cx="200" cy="90" r="3.5" opacity="0.5"/>
+          <circle cx="260" cy="55" r="4.5" opacity="0.6"/>
+          <circle cx="340" cy="95" r="3.5" opacity="0.45"/>
+          <circle cx="120" cy="30" r="3" opacity="0.4"/>
+        </g>
+        <g fill="var(--positive)">
+          <circle cx="90" cy="45" r="2.5" opacity="0.5"/>
+          <circle cx="290" cy="115" r="3" opacity="0.4"/>
+        </g>
+      </svg>
+      <span class="particle" style="left:22%; top:28%; animation-delay:0s;"></span>
+      <span class="particle" style="left:72%; top:22%; animation-delay:1.4s;"></span>
+      <span class="particle" style="left:38%; top:70%; animation-delay:2.6s;"></span>
+      <span class="particle" style="left:82%; top:64%; animation-delay:.8s;"></span>
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="position:relative;"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+      <h3 style="position:relative;">Solte um CSV ou XLSX aqui</h3>
+      <p style="position:relative;">ou clique para selecionar um arquivo (até ~50 mil linhas)</p>
       <input type="file" id="fileInput" accept=".csv,.xlsx" style="display:none">
     </div>
     <div class="upload-actions">
@@ -771,6 +831,17 @@ function labelize(col){
   const map = { categoria_produto:'Categoria', regiao:'Região', status_pagamento:'Status', data_venda:'Data' };
   return map[col] || (col ? col.replace(/_/g,' ').replace(/(^|\s)\S/g,c=>c.toUpperCase()) : '—');
 }
+function initialsAvatar(name) {
+  const clean = trimAll(name);
+  if (!clean) return '';
+  const parts = clean.split(' ').filter(Boolean);
+  const initials = ((parts[0]?.[0]||'') + (parts[1]?.[0]||'')).toUpperCase() || clean[0].toUpperCase();
+  let hash = 0;
+  for (let i=0;i<clean.length;i++) hash = clean.charCodeAt(i) + ((hash<<5)-hash);
+  const hue1 = Math.abs(hash) % 360;
+  const hue2 = (hue1 + 42) % 360;
+  return `<span class="avatar-chip" style="background:linear-gradient(135deg, hsl(${hue1},70%,52%), hsl(${hue2},70%,42%));">${initials}</span>`;
+}
 function sumBy(rows, col){ return rows.reduce((s,r)=> s + (r[col]||0), 0); }
 function topLabel(agg){ if (!agg.labels.length) return '—'; const i = agg.values.indexOf(Math.max(...agg.values)); return agg.labels[i]; }
 function isDeduction(row) {
@@ -1032,8 +1103,9 @@ function renderCleaningPanel() {
       const before = raw[h] ?? '';
       const after = clean[h];
       const afterDisplay = h===state.valCol && typeof after==='number' ? fmtCurrency(after) : (after ?? '—');
+      const avatarPrefix = h==='cliente_nome' && after ? initialsAvatar(after) : '';
       const changed = String(before).trim() !== String(after);
-      return `<td>${changed ? `<span class="cell-old">${before||'(vazio)'}</span><span class="cell-changed mono">${afterDisplay}</span>` : `<span class="mono">${afterDisplay}</span>`}</td>`;
+      return `<td>${avatarPrefix}${changed ? `<span class="cell-old">${before||'(vazio)'}</span><span class="cell-changed mono">${afterDisplay}</span>` : `<span class="mono">${afterDisplay}</span>`}</td>`;
     }).join('')+'</tr>';
   }).join('');
   document.getElementById('beforeAfterTable').innerHTML = thead+tbody;
@@ -2398,7 +2470,7 @@ function vacRenderResults() {
     <thead><tr><th>Colaborador</th><th>Status</th><th>Motivo</th></tr></thead>
     <tbody>${visible.map(r => `
       <tr class="vac-row vac-status-${r.status}">
-        <td data-label="Colaborador">${r.chave}</td>
+        <td data-label="Colaborador">${initialsAvatar(r.chave)}${r.chave}</td>
         <td data-label="Status"><span class="vac-badge ${r.status}">${badgeLabel[r.status]}</span></td>
         <td data-label="Motivo" class="vac-diff-wrap" tabindex="0">${r.motivo}${r.status==='amarelo' && r.diffs.length ? `<div class="vac-diff-tip">${r.diffs.filter(d=>!d.incomplete).map(d=>`<div><b>${d.field}</b>: Base 1: ${d.v1} ≠ Base 2: ${d.v2}</div>`).join('')}</div>` : ''}</td>
       </tr>
