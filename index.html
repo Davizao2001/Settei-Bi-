@@ -17,11 +17,13 @@
   :root {
     --bg: #fafafa; --surface: #ffffff; --surface-2: #f4f4f5; --border: #e4e4e7;
     --text: #18181b; --text-secondary: #71717a; --text-tertiary: #a1a1aa;
-    --accent: #4f46e5; --accent-soft: #eef2ff;
+    --accent: #4f46e5; --accent-strong: #4f46e5; --accent-soft: #eef2ff;
     --positive: #059669; --positive-soft: #ecfdf5;
     --negative: #e11d48; --negative-soft: #fff1f2;
     --warning: #d97706; --warning-soft: #fffbeb;
     --radius: 10px; --radius-sm: 6px;
+    --card-top-highlight: rgba(0,0,0,0.02);
+    --ease: cubic-bezier(.16,.8,.34,1);
     --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
     box-sizing: border-box;
@@ -32,12 +34,13 @@
   *, *::before, *::after { box-sizing: inherit; }
 
   :root[data-theme="dark"] {
-    --bg: #09090b; --surface: #0f0f12; --surface-2: #18181b; --border: #27272a;
+    --bg: #09090b; --surface: #121215; --surface-2: #18181b; --border: #27272a;
     --text: #fafafa; --text-secondary: #a1a1aa; --text-tertiary: #71717a;
-    --accent: #818cf8; --accent-soft: rgba(99,102,241,0.12);
-    --positive: #34d399; --positive-soft: rgba(16,185,129,0.12);
-    --negative: #fb7185; --negative-soft: rgba(225,29,72,0.12);
-    --warning: #fbbf24; --warning-soft: rgba(217,119,6,0.12);
+    --accent: #818cf8; --accent-strong: #6366f1; --accent-soft: rgba(99,102,241,0.14);
+    --positive: #10b981; --positive-soft: rgba(16,185,129,0.14);
+    --negative: #f43f5e; --negative-soft: rgba(244,63,94,0.14);
+    --warning: #f59e0b; --warning-soft: rgba(245,158,11,0.14);
+    --card-top-highlight: rgba(255,255,255,0.06);
   }
 
   html, body { height: 100%; }
@@ -73,7 +76,7 @@
   .dropzone p { margin:0; color:var(--text-secondary); font-size:13.5px; }
   .upload-actions { display:flex; gap:10px; justify-content:center; margin-top:22px; flex-wrap:wrap; }
 
-  .btn { border:1px solid var(--border); background:var(--surface-2); color:var(--text); padding:9px 15px; border-radius:var(--radius-sm); font-size:13.5px; font-weight:500; cursor:pointer; transition: all .12s; display:inline-flex; align-items:center; gap:7px; }
+  .btn { border:1px solid var(--border); background:var(--surface-2); color:var(--text); padding:9px 15px; border-radius:var(--radius-sm); font-size:13.5px; font-weight:500; cursor:pointer; transition: all .15s var(--ease); display:inline-flex; align-items:center; gap:7px; }
   .btn:hover { border-color:var(--text-tertiary); }
   .btn:active { transform: scale(0.98); }
   .btn-primary { background:var(--accent); border-color:var(--accent); color:white; }
@@ -81,7 +84,7 @@
   .btn-sm { padding:6px 11px; font-size:12.5px; }
   .btn:disabled { opacity:.45; cursor:not-allowed; }
 
-  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-top-color:var(--card-top-highlight); border-radius:var(--radius); padding:18px 20px; transition: border-color .15s var(--ease); }
   .section-title { font-size:14px; font-weight:600; margin:0 0 3px; }
   .section-sub { font-size:12.5px; color:var(--text-secondary); margin:0 0 16px; }
 
@@ -95,7 +98,7 @@
   .type-texto { background:var(--surface-2); color:var(--text-secondary); border:1px solid var(--border); }
 
   .summary-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:20px; }
-  .summary-item { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
+  .summary-item { background:var(--surface); border:1px solid var(--border); border-top-color:var(--card-top-highlight); border-radius:var(--radius); padding:14px 16px; transition: border-color .15s var(--ease); }
   .summary-item .val { font-family:var(--font-mono); font-size:22px; font-weight:600; }
   .summary-item .lbl { font-size:12px; color:var(--text-secondary); margin-top:3px; }
   .summary-item.auto .val { color:var(--positive); }
@@ -127,9 +130,25 @@
   .cell-old { color:var(--text-tertiary); text-decoration:line-through; font-size:11px; display:block; }
   .table-scroll { overflow-x:auto; }
   .table-widget-wrap { max-height:220px; overflow:auto; }
+  .prop-bar-track { height:4px; background:var(--surface-2); border-radius:2px; margin-top:5px; overflow:hidden; }
+  .prop-bar-fill { height:100%; background:var(--accent-strong); border-radius:2px; transition: width .2s var(--ease); }
+
+  @media (max-width: 640px) {
+    .responsive-table thead, .vac-table thead { display:none; }
+    .responsive-table tbody, .vac-table tbody { display:flex; flex-direction:column; gap:8px; }
+    .responsive-table tr, .vac-table tr { display:block; border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; background:var(--surface); }
+    .responsive-table td, .vac-table td { display:flex; justify-content:space-between; align-items:flex-start; padding:5px 0; border:none !important; text-align:right; gap:12px; }
+    .responsive-table td::before, .vac-table td::before { content: attr(data-label); color:var(--text-tertiary); font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; text-align:left; flex-shrink:0; padding-top:1px; }
+    .responsive-table td.vac-diff-wrap, .vac-table td.vac-diff-wrap { text-align:right; }
+    .responsive-table .prop-bar-track { width:80px; }
+    .vac-table tr.vac-status-verde { border-left:3px solid var(--positive); }
+    .vac-table tr.vac-status-azul { border-left:3px solid #38bdf8; }
+    .vac-table tr.vac-status-amarelo { border-left:3px solid var(--warning); }
+    .vac-table tr.vac-status-laranja { border-left:3px solid #fb923c; }
+  }
 
   /* Insights card */
-  .insights-card { margin-bottom:16px; }
+  .insights-card { margin-bottom:12px; }
   .insights-head { display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
   .insights-list { list-style:none; padding:0; margin:12px 0 0; display:flex; flex-direction:column; gap:8px; }
   .insights-list li { font-size:13px; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface-2); line-height:1.5; }
@@ -138,16 +157,34 @@
   #insightsBody.collapsed { display:none; }
   #insightsChevron { transition: transform .15s; }
 
-  /* Dashboard toolbar */
-  .dashboard-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
-  .focus-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
-  .focus-btn { border:1px solid var(--border); background:var(--surface-2); color:var(--text-secondary); padding:7px 12px; border-radius:100px; font-size:12.5px; cursor:pointer; transition: all .12s; }
-  .focus-btn:hover { color:var(--text); border-color:var(--text-tertiary); }
-  .focus-btn.active { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
-  .template-bar { display:flex; gap:6px; flex-wrap:wrap; }
-  .template-btn { border:1px solid var(--border); background:var(--surface-2); color:var(--text-secondary); padding:8px 13px; border-radius:100px; font-size:12.5px; font-weight:500; cursor:pointer; transition: all .12s; }
-  .template-btn:hover { color:var(--text); border-color:var(--text-tertiary); }
-  .template-btn.active { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
+  /* Executive Toolbar (unified template segment + focus dropdown + icon actions) */
+  .exec-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .exec-toolbar-left { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .exec-toolbar-right { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+
+  .segmented { display:inline-flex; background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:3px; gap:2px; flex-shrink:0; max-width:100%; }
+  @media (max-width: 640px) {
+    .segmented { overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; -ms-overflow-style:none; }
+    .segmented::-webkit-scrollbar { display:none; }
+  }
+  .segmented .template-btn { border:none; background:transparent; border-radius:7px; padding:7px 13px; font-size:12.5px; font-weight:500; color:var(--text-secondary); cursor:pointer; transition: all .15s var(--ease); white-space:nowrap; }
+  .segmented .template-btn:hover:not(.active) { color:var(--text); }
+  .segmented .template-btn.active { background:var(--surface); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,.25); }
+
+  .focus-dropdown-wrap { position:relative; flex-shrink:0; }
+  .focus-dropdown-trigger { display:flex; align-items:center; gap:7px; padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text-secondary); font-size:12.5px; font-weight:500; cursor:pointer; transition: all .15s var(--ease); white-space:nowrap; }
+  .focus-dropdown-trigger:hover { color:var(--text); border-color:var(--text-tertiary); }
+  .focus-dropdown-trigger .chevron { transition: transform .15s var(--ease); color:var(--text-tertiary); flex-shrink:0; }
+  .focus-dropdown-trigger[aria-expanded="true"] .chevron { transform:rotate(180deg); }
+  .focus-dropdown-menu { display:none; position:fixed; min-width:230px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); box-shadow:0 12px 32px rgba(0,0,0,.32); z-index:150; padding:4px; }
+  .focus-dropdown-menu.open { display:block; }
+  .focus-dropdown-menu button { display:flex; align-items:center; gap:9px; width:100%; text-align:left; background:none; border:none; padding:8px 10px; font-size:12.5px; border-radius:6px; cursor:pointer; color:var(--text); transition: background .12s; }
+  .focus-dropdown-menu button:hover { background:var(--surface-2); }
+  .focus-dropdown-menu button.active { background:var(--accent-soft); color:var(--accent); }
+
+  .icon-action-btn { width:34px; height:34px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; cursor:pointer; transition: all .15s var(--ease); flex-shrink:0; }
+  .icon-action-btn:hover { color:var(--text); border-color:var(--text-tertiary); }
+  .icon-action-btn[aria-pressed="true"] { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
 
   .outlier-toggle { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; color:var(--text-secondary); user-select:none; }
   .outlier-toggle input { position:absolute; opacity:0; width:1px; height:1px; }
@@ -157,7 +194,7 @@
   .outlier-toggle input:checked + .switch::after { transform:translateX(14px); background:var(--accent); }
   .outlier-toggle input:focus-visible + .switch { outline:2px solid var(--accent); outline-offset:2px; }
 
-  .command-bar { margin-bottom:18px; position:relative; }
+  .command-bar { margin-bottom:14px; position:relative; }
   .command-input-wrap { position:relative; display:flex; align-items:center; }
   .cmd-icon { position:absolute; left:12px; color:var(--text-tertiary); pointer-events:none; }
   #commandInput { width:100%; padding:10px 12px 10px 34px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface); color:var(--text); }
@@ -166,21 +203,32 @@
   .command-suggestions button { display:block; width:100%; text-align:left; background:none; border:none; padding:8px 10px; font-size:13px; border-radius:5px; cursor:pointer; color:var(--text); }
   .command-suggestions button:hover { background:var(--surface-2); }
   .command-chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:9px; }
-  .chip { border:1px solid var(--border); background:var(--surface-2); color:var(--text-secondary); padding:6px 12px; border-radius:100px; font-size:12px; cursor:pointer; transition: all .12s; }
+  .chip { border:1px solid var(--border); background:var(--surface-2); color:var(--text-secondary); padding:6px 12px; border-radius:100px; font-size:12px; cursor:pointer; transition: all .15s var(--ease); }
   .chip:hover { color:var(--text); border-color:var(--text-tertiary); }
   .filter-pills { display:flex; gap:8px; flex-wrap:wrap; margin-top:9px; }
   .filter-pill { display:inline-flex; align-items:center; gap:6px; background:var(--accent-soft); color:var(--accent); padding:5px 6px 5px 12px; border-radius:100px; font-size:12px; }
   .filter-pill button { background:none; border:none; color:inherit; cursor:pointer; width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; }
   .filter-pill button:hover { background:rgba(0,0,0,.12); }
 
-  .kpi-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:16px; }
-  .kpi-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; }
+  .kpi-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:10px; }
+  @media (max-width: 768px) {
+    .kpi-row { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:10px; padding-bottom:2px; -webkit-overflow-scrolling:touch; scrollbar-width:none; margin-bottom:8px; }
+    .kpi-row::-webkit-scrollbar { display:none; }
+    .kpi-row .kpi-card { scroll-snap-align:start; flex:0 0 76%; min-width:76%; }
+  }
+  .kpi-dots { display:none; justify-content:center; gap:6px; margin-bottom:14px; }
+  @media (max-width: 768px) { .kpi-dots { display:flex; } }
+  .kpi-dot { width:6px; height:6px; border-radius:50%; background:var(--border); transition: all .15s var(--ease); }
+  .kpi-dot.active { background:var(--accent-strong); width:16px; border-radius:3px; }
+  .kpi-card { background:var(--surface); border:1px solid var(--border); border-top-color:var(--card-top-highlight); border-radius:var(--radius); padding:16px 18px; transition: border-color .15s var(--ease), transform .15s var(--ease); }
+  .kpi-card:hover { border-color:var(--text-tertiary); }
   .kpi-card .lbl { font-size:12px; color:var(--text-secondary); margin-bottom:8px; }
   .kpi-card .val { font-family:var(--font-mono); font-size:22px; font-weight:600; letter-spacing:-0.01em; }
 
   .widget-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
   @media (max-width: 760px) { .widget-grid { grid-template-columns:1fr; } }
-  .widget { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px 10px; cursor:grab; }
+  .widget { background:var(--surface); border:1px solid var(--border); border-top-color:var(--card-top-highlight); border-radius:var(--radius); padding:14px 16px 10px; cursor:grab; transition: border-color .15s var(--ease); }
+  .widget:hover { border-color:var(--text-tertiary); }
   .widget.dragging { opacity:.4; }
   .widget.wide { grid-column:1 / -1; }
   .widget-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; gap: 8px;}
@@ -201,7 +249,11 @@
   .widget-menu button.danger { color:var(--negative); }
   .chart-box { width:100%; height:240px; }
 
-  .add-widget-card { border:1.5px dashed var(--border); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; min-height:100px; cursor:pointer; color:var(--text-tertiary); font-size:13px; grid-column:1 / -1; transition: all .15s; }
+  .add-widget-card { border:1.5px dashed var(--border); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; min-height:100px; cursor:pointer; color:var(--text-tertiary); font-size:13px; grid-column:1 / -1; transition: all .15s var(--ease); }
+  .empty-state-block { grid-column:1 / -1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:56px 20px; text-align:center; gap:6px; color:var(--text-tertiary); }
+  .empty-state-block svg { margin-bottom:8px; color:var(--text-tertiary); }
+  .empty-state-block h4 { color:var(--text); font-size:14.5px; font-weight:600; margin:0; }
+  .empty-state-block p { font-size:12.5px; margin:0 0 10px; max-width:320px; line-height:1.5; }
   .add-widget-card:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
 
   .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:100; padding:20px; }
@@ -247,6 +299,13 @@
   .drawer-input-row { display:flex; gap:8px; padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--border); flex-shrink:0; }
   .drawer-input-row input { flex:1; padding:9px 11px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text); min-width:0; }
   @media (max-width: 480px) { .copilot-drawer { width:100vw; } }
+  @media (max-width: 768px) {
+    .copilot-drawer { top:auto; bottom:0; left:0; right:0; width:100%; height:82vh; max-height:88vh; border-left:none; border-top:1px solid var(--border); border-radius:20px 20px 0 0; box-shadow:0 -8px 32px rgba(0,0,0,.35); transform:translateY(100%); }
+    .copilot-drawer.open { transform:translateY(0); }
+    .sheet-handle { display:block; width:36px; height:4px; border-radius:2px; background:var(--border); margin:8px auto 0; flex-shrink:0; }
+    .drawer-head { padding-top:6px; }
+  }
+  .sheet-handle { display:none; }
 
   /* ============================= EXECUTIVE REPORT (always-on styles, used both on-screen and in print) ============================= */
   .print-header h1 { font-size:18px; margin:0 0 8px; font-weight:700; color:#09090b; }
@@ -425,19 +484,30 @@
       </div>
     </div>
 
-    <div class="dashboard-toolbar">
-      <div class="template-bar" id="templateBar"></div>
-      <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
-        <button class="btn btn-sm" id="exportReportBtn">📄 Gerar Relatório Executivo (PDF)</button>
-        <button class="btn btn-sm" id="vacationAuditBtn" style="display:none;">📋 Auditoria &amp; Conciliação de Férias</button>
-        <label class="outlier-toggle">
-          <input type="checkbox" id="outlierToggle">
-          <span class="switch"></span>
-          <span>Ocultar valores atípicos</span>
-        </label>
+    <div class="exec-toolbar">
+      <div class="exec-toolbar-left">
+        <div class="segmented" id="templateBar"></div>
+        <div class="focus-dropdown-wrap">
+          <button class="focus-dropdown-trigger" id="focusDropdownTrigger" aria-haspopup="true" aria-expanded="false">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h6"/></svg>
+            <span id="focusDropdownLabel">Visão Executiva Geral</span>
+            <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="focus-dropdown-menu" id="focusDropdownMenu"></div>
+        </div>
+      </div>
+      <div class="exec-toolbar-right">
+        <button class="icon-action-btn" id="outlierToggleBtn" aria-pressed="false" title="Ocultar valores atípicos" aria-label="Ocultar valores atípicos">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-10-8-10-8a18.5 18.5 0 0 1 4.22-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+        <button class="icon-action-btn" id="vacationAuditBtn" style="display:none;" title="Auditoria &amp; Conciliação de Férias" aria-label="Auditoria e Conciliação de Férias">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
+        </button>
+        <button class="icon-action-btn" id="exportReportBtn" title="Gerar Relatório Executivo (PDF)" aria-label="Gerar Relatório Executivo em PDF">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </button>
       </div>
     </div>
-    <div class="focus-bar" id="focusBar"></div>
 
     <div class="command-bar">
       <div class="command-input-wrap">
@@ -450,6 +520,7 @@
     </div>
 
     <div class="kpi-row" id="kpiRow"></div>
+    <div class="kpi-dots" id="kpiDots"></div>
     <div class="widget-grid" id="widgetGrid"></div>
     <div class="footer-nav">
       <button class="btn" id="backTo2">← Voltar para auditoria</button>
@@ -548,9 +619,7 @@
       <div id="vacResultsPanel" class="hidden">
         <div class="kpi-row" id="vacKpiRow"></div>
         <div class="command-chips" id="vacFilterChips" style="margin-bottom:16px;"></div>
-        <div class="table-scroll">
-          <table class="vac-table" id="vacResultsTable"></table>
-        </div>
+        <table class="vac-table" id="vacResultsTable"></table>
       </div>
 
     </div>
@@ -562,6 +631,7 @@
 </button>
 <div class="drawer-overlay" id="drawerOverlay"></div>
 <aside class="copilot-drawer" id="copilotDrawer" aria-label="Copiloto">
+  <div class="sheet-handle"></div>
   <div class="drawer-head">
     <div class="drawer-title">✨ Copiloto</div>
     <div style="display:flex; gap:4px;">
@@ -1156,27 +1226,50 @@ function generateFocusWidgets(focus) {
   }
   return generateTemplateWidgets(state.template);
 }
+const FOCUS_OPTIONS = [
+  ['geral','📊 Visão Executiva Geral'],
+  ['tendencia','📈 Tendência & Crescimento'],
+  ['diagnostico','⚠️ Diagnóstico & Riscos'],
+  ['performance','🏆 Performance & Ranking'],
+];
 function applyFocus(focus) {
   state.focus = focus;
-  updateFocusBarActive();
+  updateFocusDropdownActive();
+  closeFocusDropdown();
   state.widgets = generateFocusWidgets(focus);
   refreshDashboardData();
 }
 function renderFocusBar() {
-  const bar = document.getElementById('focusBar');
-  const options = [
-    ['geral','📊 Visão Executiva Geral'],
-    ['tendencia','📈 Tendência & Crescimento'],
-    ['diagnostico','⚠️ Diagnóstico & Riscos'],
-    ['performance','🏆 Performance & Ranking'],
-  ];
-  bar.innerHTML = options.map(([key,label])=>`<button class="focus-btn" data-focus="${key}">${label}</button>`).join('');
-  bar.querySelectorAll('.focus-btn').forEach(btn => btn.addEventListener('click', () => applyFocus(btn.dataset.focus)));
-  updateFocusBarActive();
+  const menu = document.getElementById('focusDropdownMenu');
+  menu.innerHTML = FOCUS_OPTIONS.map(([key,label])=>`<button data-focus="${key}">${label}</button>`).join('');
+  menu.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => applyFocus(btn.dataset.focus)));
+  updateFocusDropdownActive();
 }
-function updateFocusBarActive() {
-  document.querySelectorAll('.focus-btn').forEach(b => b.classList.toggle('active', b.dataset.focus===state.focus));
+function updateFocusBarActive() { updateFocusDropdownActive(); }
+function updateFocusDropdownActive() {
+  const current = FOCUS_OPTIONS.find(([k])=>k===state.focus) || FOCUS_OPTIONS[0];
+  document.getElementById('focusDropdownLabel').textContent = current[1].replace(/^\S+\s/, '');
+  document.querySelectorAll('#focusDropdownMenu button').forEach(b => b.classList.toggle('active', b.dataset.focus===state.focus));
 }
+function closeFocusDropdown() {
+  document.getElementById('focusDropdownMenu').classList.remove('open');
+  document.getElementById('focusDropdownTrigger').setAttribute('aria-expanded','false');
+}
+document.getElementById('focusDropdownTrigger').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const menu = document.getElementById('focusDropdownMenu');
+  const trigger = document.getElementById('focusDropdownTrigger');
+  const willOpen = !menu.classList.contains('open');
+  if (willOpen) {
+    const rect = trigger.getBoundingClientRect();
+    menu.style.top = (rect.bottom + 6) + 'px';
+    menu.style.left = Math.min(rect.left, window.innerWidth - 246) + 'px';
+  }
+  menu.classList.toggle('open', willOpen);
+  trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+});
+document.addEventListener('click', (e) => { if (!e.target.closest('.focus-dropdown-wrap')) closeFocusDropdown(); });
+window.addEventListener('scroll', closeFocusDropdown, { passive:true });
 function buildDashboard() {
   finalizeCleaning();
   computeColumnRoles();
@@ -1190,7 +1283,7 @@ function buildDashboard() {
 function applyTemplate(name, opts={}) {
   state.template = name;
   updateTemplateBarActive();
-  if (opts.resetWidgets) { state.widgets = generateTemplateWidgets(name); state.filters = {}; state.focus = 'geral'; updateFocusBarActive(); }
+  if (opts.resetWidgets) { state.widgets = generateTemplateWidgets(name); state.filters = {}; state.focus = 'geral'; updateFocusDropdownActive(); }
   else generateTemplateWidgets(name);
   refreshDashboardData();
 }
@@ -1217,8 +1310,24 @@ function refreshDashboardData() {
 }
 function renderKpis(kpis) {
   document.getElementById('kpiRow').innerHTML = kpis.map(k=>`<div class="kpi-card"><div class="lbl">${k.label}</div><div class="val mono">${k.value}</div></div>`).join('');
+  const dotsEl = document.getElementById('kpiDots');
+  dotsEl.innerHTML = kpis.map((_,i)=>`<span class="kpi-dot ${i===0?'active':''}" data-dot="${i}"></span>`).join('');
+  setupKpiScrollSync();
 }
-
+function setupKpiScrollSync() {
+  const row = document.getElementById('kpiRow');
+  const dots = document.getElementById('kpiDots');
+  if (row._kpiScrollHandler) row.removeEventListener('scroll', row._kpiScrollHandler);
+  const handler = () => {
+    const cards = [...row.children];
+    if (!cards.length) return;
+    const cardWidth = cards[0].getBoundingClientRect().width + 10;
+    const idx = Math.round(row.scrollLeft / cardWidth);
+    dots.querySelectorAll('.kpi-dot').forEach((d,i)=>d.classList.toggle('active', i===idx));
+  };
+  row._kpiScrollHandler = handler;
+  row.addEventListener('scroll', handler, { passive:true });
+}
 /* ============================= EXECUTIVE INSIGHTS ============================= */
 function computeInsights(rows) {
   const val = state.valCol;
@@ -1602,8 +1711,8 @@ function renderFilterPills() {
   wrap.querySelectorAll('[data-clear]').forEach(btn=>btn.addEventListener('click', ()=>{ delete state.filters[btn.dataset.clear]; refreshDashboardData(); }));
 }
 function renderOutlierToggleState() {
-  const el = document.getElementById('outlierToggle');
-  if (el) el.checked = !!state.hideOutliers;
+  const el = document.getElementById('outlierToggleBtn');
+  if (el) el.setAttribute('aria-pressed', state.hideOutliers ? 'true' : 'false');
 }
 document.getElementById('commandInput').addEventListener('input', (e) => {
   const q = e.target.value.trim();
@@ -1618,19 +1727,42 @@ document.getElementById('commandInput').addEventListener('keydown', (e) => {
   if (e.key==='Enter') { runNL(e.target.value); e.target.value=''; document.getElementById('commandSuggestions').classList.remove('open'); }
 });
 document.addEventListener('click', (e) => { if (!e.target.closest('.command-input-wrap')) document.getElementById('commandSuggestions').classList.remove('open'); });
-document.getElementById('outlierToggle').addEventListener('change', (e)=>toggleOutliers(e.target.checked));
+document.getElementById('outlierToggleBtn').addEventListener('click', ()=>toggleOutliers(!state.hideOutliers));
 
 /* ============================= WIDGETS & CHARTS ============================= */
 function getChartColors() {
   const dark = document.documentElement.dataset.theme==='dark';
   return {
-    text: dark?'#a1a1aa':'#71717a', grid: dark?'#27272a':'#e4e4e7', surface: dark?'#0f0f12':'#ffffff',
-    palette: ['#6366f1','#34d399','#fbbf24','#fb7185','#38bdf8','#a78bfa'],
-    positive: dark?'#34d399':'#059669', negative: dark?'#fb7185':'#e11d48', accent: dark?'#818cf8':'#4f46e5',
+    text: dark?'#a1a1aa':'#71717a', grid: dark?'#27272a':'#e4e4e7', surface: dark?'#121215':'#ffffff',
+    palette: ['#6366f1','#10b981','#f59e0b','#f43f5e','#38bdf8','#a78bfa'],
+    positive: dark?'#10b981':'#059669', negative: dark?'#f43f5e':'#e11d48', accent: dark?'#6366f1':'#4f46e5',
+  };
+}
+function tooltipStyle() {
+  const dark = document.documentElement.dataset.theme==='dark';
+  return {
+    backgroundColor: dark ? 'rgba(18,18,21,0.92)' : 'rgba(255,255,255,0.97)',
+    borderColor: dark ? '#3f3f46' : '#e4e4e7',
+    borderWidth: 1,
+    textStyle: { color: dark ? '#fafafa' : '#18181b', fontSize: 12, fontFamily: 'Inter, sans-serif' },
+    extraCssText: 'backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(0,0,0,.28); border-radius: 10px; padding: 9px 12px;',
   };
 }
 function renderWidgets() {
   const grid = document.getElementById('widgetGrid'); grid.innerHTML='';
+  const visibleCount = getVisibleRows().length;
+  const hasActiveNarrowing = Object.keys(state.filters||{}).length > 0 || state.hideOutliers;
+  if (visibleCount === 0 && hasActiveNarrowing) {
+    grid.innerHTML = `
+      <div class="empty-state-block">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M8 11h6"/></svg>
+        <h4>Nenhum dado com os filtros atuais</h4>
+        <p>Os filtros ou o toggle de outliers ativos não deixaram nenhuma linha visível.</p>
+        <button class="btn btn-primary btn-sm" id="emptyStateResetBtn">Redefinir filtros</button>
+      </div>`;
+    document.getElementById('emptyStateResetBtn').addEventListener('click', () => { state.filters = {}; state.hideOutliers = false; refreshDashboardData(); });
+    return;
+  }
   state.widgets.forEach(w => {
     const el = document.createElement('div');
     el.className = 'widget'+(w.wide?' wide':'');
@@ -1688,7 +1820,7 @@ function renderChart(w) {
     const { labels, values } = aggregate(rows, w.dim, w.metric, state.valCol);
     option = {
       color: colors.palette,
-      tooltip: { trigger:'item', valueFormatter: valueFormatterFor(w) },
+      tooltip: { ...tooltipStyle(), trigger:'item', valueFormatter: valueFormatterFor(w) },
       legend: { orient:'vertical', right:2, top:'middle', itemWidth:10, itemHeight:10, itemGap:10, textStyle:{ color:colors.text, fontSize:11 }, formatter: n => n.length>13 ? n.slice(0,12)+'…' : n },
       series: [{ type:'pie', radius:['46%','72%'], center:['36%','52%'], avoidLabelOverlap:true, label:{ show:false }, labelLine:{ show:false }, itemStyle:{ borderColor:colors.surface, borderWidth:2 }, data: labels.map((l,i)=>({ name:l, value:values[i] })) }],
     };
@@ -1699,7 +1831,7 @@ function renderChart(w) {
     option = {
       color: colors.palette,
       grid: { left:110, right:24, top:10, bottom:20 },
-      tooltip: { trigger:'axis', valueFormatter: valueFormatterFor(w) },
+      tooltip: { ...tooltipStyle(), trigger:'axis', valueFormatter: valueFormatterFor(w) },
       xAxis: { type:'value', axisLabel:{ color:colors.text, fontSize:10, formatter: axisFormatterFor(w) }, splitLine:{ lineStyle:{ color:colors.grid } } },
       yAxis: { type:'category', data:sLabels, axisLabel:{ color:colors.text, fontSize:10 }, axisLine:{ lineStyle:{ color:colors.grid } } },
       series: [{ type:'bar', data:sValues, itemStyle:{ borderRadius:[0,4,4,0] }, barWidth:'55%' }],
@@ -1717,7 +1849,7 @@ function renderChart(w) {
     option = {
       color: colors.palette,
       grid: { left:64, right:24, top:20, bottom:44 },
-      tooltip: { trigger:'item', formatter: (p) => `${p.data.name}<br/>Transações: ${fmtInt(p.data.value[0])}<br/>Total: ${fmtCurrency(p.data.value[1])}` },
+      tooltip: { ...tooltipStyle(), trigger:'item', formatter: (p) => `${p.data.name}<br/>Transações: ${fmtInt(p.data.value[0])}<br/>Total: ${fmtCurrency(p.data.value[1])}` },
       xAxis: { name:'Transações', nameLocation:'middle', nameGap:26, type:'value', axisLabel:{ color:colors.text, fontSize:10 }, splitLine:{ lineStyle:{ color:colors.grid } } },
       yAxis: { name:'Valor total', nameLocation:'middle', nameGap:50, type:'value', axisLabel:{ color:colors.text, fontSize:10, formatter:v=>fmtCompactCurrency(v) }, splitLine:{ lineStyle:{ color:colors.grid } } },
       series: [{ type:'scatter', symbolSize:16, data, itemStyle:{ opacity:0.85 }, label:{ show:true, formatter:p=>p.data.name, position:'top', color:colors.text, fontSize:10 } }],
@@ -1730,7 +1862,7 @@ function renderChart(w) {
     const base = [0, liquido, 0]; const vals = [pos, neg, liquido];
     option = {
       grid: { left:64, right:20, top:20, bottom:30 },
-      tooltip: { trigger:'axis', axisPointer:{ type:'shadow' }, valueFormatter: v=>fmtCurrency(v) },
+      tooltip: { ...tooltipStyle(), trigger:'axis', axisPointer:{ type:'shadow' }, valueFormatter: v=>fmtCurrency(v) },
       xAxis: { type:'category', data:cats, axisLabel:{ color:colors.text, fontSize:10.5 }, axisLine:{ lineStyle:{ color:colors.grid } } },
       yAxis: { type:'value', axisLabel:{ color:colors.text, fontSize:10, formatter:v=>fmtCompactCurrency(v) }, splitLine:{ lineStyle:{ color:colors.grid } } },
       series: [
@@ -1753,7 +1885,7 @@ function renderChart(w) {
       color: [colors.positive, colors.negative],
       grid: { left:64, right:20, top:34, bottom:40 },
       legend: { top:0, textStyle:{ color:colors.text, fontSize:11 } },
-      tooltip: { trigger:'axis', valueFormatter: v=>fmtCurrency(v) },
+      tooltip: { ...tooltipStyle(), trigger:'axis', valueFormatter: v=>fmtCurrency(v) },
       xAxis: { type:'category', data:labels, axisLabel:{ color:colors.text, fontSize:10, interval:0, rotate: labels.length>4?20:0 }, axisLine:{ lineStyle:{ color:colors.grid } } },
       yAxis: { type:'value', axisLabel:{ color:colors.text, fontSize:10, formatter:v=>fmtCompactCurrency(v) }, splitLine:{ lineStyle:{ color:colors.grid } } },
       series: [
@@ -1766,7 +1898,7 @@ function renderChart(w) {
     option = {
       color: colors.palette,
       grid: { left:46, right:16, top:20, bottom:38 },
-      tooltip: { trigger:'axis', valueFormatter: v=>fmtInt(v)+' registro(s)' },
+      tooltip: { ...tooltipStyle(), trigger:'axis', valueFormatter: v=>fmtInt(v)+' registro(s)' },
       xAxis: { type:'category', data:labels, axisLabel:{ color:colors.text, fontSize:9.5, interval:0 }, axisLine:{ lineStyle:{ color:colors.grid } } },
       yAxis: { type:'value', axisLabel:{ color:colors.text, fontSize:10, formatter:v=>fmtInt(v) }, splitLine:{ lineStyle:{ color:colors.grid } } },
       series: [{ type:'bar', data:values, itemStyle:{ borderRadius:[4,4,0,0] }, barWidth:'60%' }],
@@ -1776,7 +1908,7 @@ function renderChart(w) {
     option = {
       color: colors.palette,
       grid: { left:56, right:16, top:20, bottom:30 },
-      tooltip: { trigger:'axis', valueFormatter: valueFormatterFor(w) },
+      tooltip: { ...tooltipStyle(), trigger:'axis', valueFormatter: valueFormatterFor(w) },
       xAxis: { type:'category', data:labels, axisLine:{ lineStyle:{ color:colors.grid } }, axisLabel:{ color:colors.text, fontSize:10 } },
       yAxis: { type:'value', splitLine:{ lineStyle:{ color:colors.grid } }, axisLabel:{ color:colors.text, fontSize:10, formatter: axisFormatterFor(w) } },
       series: [{ type: w.type==='line'?'line':'bar', data:values, smooth: w.type==='line', areaStyle: w.type==='line'?{ opacity:0.12 }:undefined, itemStyle:{ borderRadius: w.type==='bar'?[4,4,0,0]:0 }, barWidth:'55%' }],
@@ -1796,10 +1928,15 @@ function renderTableWidget(w, el) {
   let data = Object.entries(groups).map(([k,arr]) => ({ dim:k, soma:arr.reduce((a,b)=>a+b,0), contagem:arr.length, media: arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0 }));
   const sortKey = w.sortKey || 'soma', sortDir = w.sortDir || 'desc';
   data.sort((a,b) => (a[sortKey]-b[sortKey]) * (sortDir==='asc'?1:-1));
+  const maxSoma = Math.max(...data.map(d=>Math.abs(d.soma)), 1);
   const cols = [ { key:'dim', label:labelize(w.dim) }, { key:'soma', label:'Soma', fmt:fmtCurrency }, { key:'contagem', label:'Contagem', fmt:fmtInt }, { key:'media', label:'Média', fmt:fmtCurrency } ];
-  el.innerHTML = `<div class="table-widget-wrap"><table class="audit-table">
+  el.innerHTML = `<div class="table-widget-wrap"><table class="audit-table responsive-table">
     <thead><tr>${cols.map(c=>`<th data-sort="${c.key}" style="cursor:pointer" aria-sort="${sortKey===c.key?(sortDir==='asc'?'ascending':'descending'):'none'}">${c.label} ${sortKey===c.key?(sortDir==='asc'?'↑':'↓'):''}</th>`).join('')}</tr></thead>
-    <tbody>${data.map(d=>`<tr>${cols.map(c=>`<td class="mono">${c.fmt?c.fmt(d[c.key]):d[c.key]}</td>`).join('')}</tr>`).join('')}</tbody>
+    <tbody>${data.map(d=>`<tr>${cols.map(c=>{
+      const val = c.fmt ? c.fmt(d[c.key]) : d[c.key];
+      const bar = c.key==='dim' ? `<div class="prop-bar-track"><div class="prop-bar-fill" style="width:${Math.max(4,Math.abs(d.soma)/maxSoma*100)}%"></div></div>` : '';
+      return `<td data-label="${c.label}" class="${c.key==='dim'?'':'mono'}">${val}${bar}</td>`;
+    }).join('')}</tr>`).join('')}</tbody>
   </table></div>`;
   el.querySelectorAll('th[data-sort]').forEach(th => th.addEventListener('click', () => {
     const k = th.dataset.sort;
@@ -2261,9 +2398,9 @@ function vacRenderResults() {
     <thead><tr><th>Colaborador</th><th>Status</th><th>Motivo</th></tr></thead>
     <tbody>${visible.map(r => `
       <tr class="vac-row vac-status-${r.status}">
-        <td>${r.chave}</td>
-        <td><span class="vac-badge ${r.status}">${badgeLabel[r.status]}</span></td>
-        <td class="vac-diff-wrap" tabindex="0">${r.motivo}${r.status==='amarelo' && r.diffs.length ? `<div class="vac-diff-tip">${r.diffs.filter(d=>!d.incomplete).map(d=>`<div><b>${d.field}</b>: Base 1: ${d.v1} ≠ Base 2: ${d.v2}</div>`).join('')}</div>` : ''}</td>
+        <td data-label="Colaborador">${r.chave}</td>
+        <td data-label="Status"><span class="vac-badge ${r.status}">${badgeLabel[r.status]}</span></td>
+        <td data-label="Motivo" class="vac-diff-wrap" tabindex="0">${r.motivo}${r.status==='amarelo' && r.diffs.length ? `<div class="vac-diff-tip">${r.diffs.filter(d=>!d.incomplete).map(d=>`<div><b>${d.field}</b>: Base 1: ${d.v1} ≠ Base 2: ${d.v2}</div>`).join('')}</div>` : ''}</td>
       </tr>
     `).join('') || `<tr><td colspan="3" style="text-align:center; color:var(--text-tertiary); padding:20px;">Nenhum registro nesta categoria.</td></tr>`}</tbody>
   `;
