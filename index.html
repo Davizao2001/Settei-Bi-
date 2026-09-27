@@ -252,6 +252,11 @@
   @keyframes kpi-fade-in { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
   .kpi-card .lbl { font-size:12px; color:var(--text-secondary); margin-bottom:8px; }
   .kpi-card .val { font-family:var(--font-mono); font-size:22px; font-weight:600; letter-spacing:-0.01em; }
+  .kpi-card .val.kpi-good { color:var(--positive); }
+  .kpi-card .val.kpi-warn { color:var(--warning); }
+  .kpi-card .val.kpi-bad { color:var(--negative); }
+  .media-perf-table .cell-good { background:var(--positive-soft); border-radius:5px; }
+  .media-perf-table .cell-bad { background:var(--negative-soft); border-radius:5px; }
 
   .widget-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
   @media (max-width: 760px) { .widget-grid { grid-template-columns:1fr; } }
@@ -783,6 +788,24 @@ TRX-1014,28/01/2026,Marcos Vinicius,Software,R$ 2.100,50,Aprovado,Nordeste
 TRX-1015,29/01/2026,Fernanda Lima,Hardware,920.00,Estornado,Sudeste
 `;
 
+const MARKETING_SAMPLE_CSV = `data,nome_campanha,canal,linha_produto,impressoes,cliques,custo_investido,conversoes,receita_atribuida
+2026-05-01,BR_GOOGLE_OLED-TV_CONV_MAIO,Google,OLED,48000,1400,780.00,38,4680.00
+2026-05-02,BR_GOOGLE_OLED-TV_CONV_MAIO,Google,OLED,51000,1520,810.00,41,5002.00
+2026-05-03,BR_GOOGLE_OLED-TV_CONV_MAIO,Google,OLED,49500,1460,795.00,39,4818.00
+2026-05-01,BR_META_LINHA-BRANCA_CONV_MAIO,Meta,Linha Branca,40000,980,600.00,20,1800.00
+2026-05-02,BR_META_LINHA-BRANCA_CONV_MAIO,Meta,Linha Branca,42000,1010,615.00,21,1890.00
+2026-05-03,BR_META_LINHA-BRANCA_CONV_MAIO,Meta,Linha Branca,41500,995,605.00,19,1710.00
+2026-05-01,BR_TIKTOK_AUDIO_AWR_MAIO,TikTok,Áudio,80000,1900,900.00,8,900.00
+2026-05-02,BR_TIKTOK_AUDIO_AWR_MAIO,TikTok,Áudio,82000,1950,915.00,7,787.50
+2026-05-03,BR_TIKTOK_AUDIO_AWR_MAIO,TikTok,Áudio,79000,1880,895.00,9,1012.50
+2026-05-01,BR_GOOGLE_MONITORES_CONV_MAIO,Google,Monitores,35000,1100,500.00,25,2750.00
+2026-05-02,BR_GOOGLE_MONITORES_CONV_MAIO,Google,Monitores,36500,1150,515.00,26,2860.00
+2026-05-03,BR_GOOGLE_MONITORES_CONV_MAIO,Google,Monitores,35800,1120,505.00,24,2640.00
+2026-05-01,BR_RETAIL_OLED-TV_CONV_MAIO,Retail Media,OLED,30000,650,700.00,12,1050.00
+2026-05-02,BR_RETAIL_OLED-TV_CONV_MAIO,Retail Media,OLED,31000,670,710.00,11,962.50
+2026-05-03,BR_RETAIL_OLED-TV_CONV_MAIO,Retail Media,OLED,29500,640,695.00,13,1137.50
+`;
+
 /* ============================= UTILITIES ============================= */
 function levenshtein(a, b) {
   a=a.toLowerCase(); b=b.toLowerCase();
@@ -877,6 +900,49 @@ function isLikelyIdentifierColumn(header, rows) {
 function findStatusColumn(rows, catCols, allHeaders) {
   const scan = (cols) => cols.find(col => rows.some(r => /cancel|estorn|devolv|reembols/i.test(r[col]||'')));
   return scan(catCols && catCols.length ? catCols : []) || scan(allHeaders.filter(h=>!(catCols||[]).includes(h))) || null;
+}
+
+/* ============================= MARKETING: TAXONOMY & COLUMN DETECTION ============================= */
+function parseCampaignTaxonomy(nome) {
+  if (!nome) return { canal:null, produto:null };
+  const norm = s => normalizeText(s).replace(/[^a-z0-9]/g,'');
+  const CHANNEL_MAP = { google:'Google', meta:'Meta', facebook:'Meta', instagram:'Meta', tiktok:'TikTok', retail:'Retail Media', retailmedia:'Retail Media' };
+  const PRODUCT_MAP = { oled:'OLED', oledtv:'OLED', tv:'OLED', linhabranca:'Linha Branca', geladeira:'Linha Branca', fogao:'Linha Branca', monitor:'Monitores', monitores:'Monitores', audio:'Áudio', som:'Áudio', fone:'Áudio' };
+  const parts = String(nome).split(/[_\-|]/).map(p=>norm(p)).filter(Boolean);
+  const pairs = [];
+  for (let i=0;i<parts.length-1;i++) pairs.push(parts[i]+parts[i+1]);
+  const candidates = [...parts, ...pairs];
+  let canal = null, produto = null;
+  candidates.forEach(c => {
+    if (!canal && CHANNEL_MAP[c]) canal = CHANNEL_MAP[c];
+    if (!produto && PRODUCT_MAP[c]) produto = PRODUCT_MAP[c];
+  });
+  return { canal, produto };
+}
+function setupMarketingColumns(rows) {
+  const mc = {
+    invest: state.headers.find(h => /custo|invest|spend/i.test(h)),
+    revenue: state.headers.find(h => /receita|revenue/i.test(h)),
+    conversions: state.headers.find(h => /convers/i.test(h)),
+    clicks: state.headers.find(h => /clique|click/i.test(h)),
+    impressions: state.headers.find(h => /impress/i.test(h)),
+    channel: state.headers.find(h => /^canal$|channel/i.test(h)),
+    campaign: state.headers.find(h => /campanha|campaign/i.test(h)),
+    product: state.headers.find(h => /linha_produto|produto|product/i.test(h)),
+  };
+  if (mc.campaign && (!mc.channel || !mc.product)) {
+    rows.forEach(r => {
+      const tax = parseCampaignTaxonomy(r[mc.campaign]);
+      if (!mc.channel && tax.canal) r.__canal_derivado = tax.canal;
+      if (!mc.product && tax.produto) r.__produto_derivado = tax.produto;
+    });
+    if (!mc.channel && rows.some(r=>r.__canal_derivado)) mc.channel = '__canal_derivado';
+    if (!mc.product && rows.some(r=>r.__produto_derivado)) mc.product = '__produto_derivado';
+  }
+  state.marketingCols = mc;
+}
+function isMarketingDataset() {
+  return !!(state.marketingCols && state.marketingCols.invest && state.marketingCols.revenue);
 }
 
 /* ============================= PARSING & REALIGNMENT ============================= */
@@ -1000,6 +1066,7 @@ function runCleaningPipeline() {
   // Status/deduction column detected by scanning actual VALUES for known terms — works no matter
   // what the column is named (status, situacao, estado_pagamento, ...).
   state.statusCol = findStatusColumn(rows, pipelineCatCols, state.headers);
+  setupMarketingColumns(rows);
 
   rows.forEach((row, idx) => {
     if (row.__missingDate || row.__missingValue) {
@@ -1147,6 +1214,7 @@ function autoDetectTemplate(headers) {
   const h = headers.join(' ').toLowerCase();
   const has = arr => arr.some(k=>h.includes(k));
   if (has(['salario','salário','departamento','funcionario','funcionário','cargo','headcount'])) return 'rh';
+  if (has(['impressoes','impressões','cliques','conversoes','conversões','campanha','canal','roas','cpa','ctr','midia','mídia','ad_spend'])) return 'marketing';
   if (has(['receita','custo','margem','lucro','dre','despesa','centro_custo'])) return 'financeiro';
   return 'vendas';
 }
@@ -1179,6 +1247,16 @@ function generateTemplateWidgets(name) {
       { id:'w1', type:'donut', dim:primary, metric:'count', title:`Distribuição por ${labelize(primary)}` },
       { id:'w2', type:'histogram', title:'Faixas de remuneração', special:true, metric:'count' },
       { id:'w3', type:'bar', dim:primary, metric:'avg', title:`Valor médio por ${labelize(primary)}` },
+    ];
+  }
+  if (name === 'marketing') {
+    const mc = state.marketingCols;
+    state.templateCols = { primary: mc.channel, secondary: mc.product };
+    return [
+      { id:'w1', type:'media-scatter', title:'Matriz de Eficiência de Mídia', special:true },
+      { id:'w2', type:'media-combo', title:'Evolução Temporal: Gasto vs. Retorno', special:true },
+      { id:'w3', type:'bar-h', dim:mc.channel, valCol:mc.revenue, metric:'sum', title:'Ranking por Canal (Receita)' },
+      { id:'w4', type:'media-table', title:'Tabela Analítica de Campanhas', special:true, wide:true },
     ];
   }
   return [];
@@ -1217,6 +1295,21 @@ function computeKpis(template, rows) {
       { label:'Salário médio', value:fmtCurrency(avg) },
       { label:`${labelize(state.templateCols.primary)} líder`, value:topLabel(byArea) },
       { label:'Faixa mais comum', value: modeIdx>=0 ? bins.labels[modeIdx] : '—' },
+    ];
+  }
+  if (template === 'marketing') {
+    const mc = state.marketingCols;
+    const totalInvest = sumBy(rows, mc.invest);
+    const totalRevenue = sumBy(rows, mc.revenue);
+    const totalConv = sumBy(rows, mc.conversions);
+    const roas = totalInvest > 0 ? totalRevenue / totalInvest : 0;
+    const cpa = totalConv > 0 ? totalInvest / totalConv : null;
+    const roasBadge = !isFinite(roas) || totalInvest<=0 ? 'bad' : roas>=4 ? 'good' : roas>=2 ? 'warn' : 'bad';
+    return [
+      { label:'Investimento Total', value: fmtCurrency(totalInvest) },
+      { label:'Receita Gerada', value: fmtCurrency(totalRevenue) },
+      { label:'ROAS Consolidado', value: (totalInvest>0 ? roas.toFixed(2).replace('.',',') : '0,00')+'x', badgeClass: roasBadge },
+      { label:'CPA Médio', value: cpa!==null ? fmtCurrency(cpa) : '—' },
     ];
   }
   return [];
@@ -1272,6 +1365,7 @@ function axisFormatterFor(w) { return w.metric==='count' ? (v=>fmtInt(v)) : (v=>
 function generateFocusWidgets(focus) {
   computeColumnRoles();
   if (focus === 'geral' || !focus) return generateTemplateWidgets(state.template);
+  if (state.template === 'marketing') return generateMarketingFocusWidgets(focus);
   const primary = state.templateCols.primary || pickCol(['categoria','produto','item','vendedor','departamento','area','centro','conta']);
   const secondary = state.templateCols.secondary || pickCol(['regiao','estado','status'], [primary]);
   const statusCol = state.statusCol;
@@ -1297,6 +1391,29 @@ function generateFocusWidgets(focus) {
     ];
   }
   return generateTemplateWidgets(state.template);
+}
+function generateMarketingFocusWidgets(focus) {
+  const mc = state.marketingCols;
+  if (focus === 'tendencia') {
+    return [
+      { id:'w1', type:'media-combo', title:'Evolução: Investimento vs. Receita', special:true, wide:true },
+      { id:'w2', type:'bar-h', dim:mc.campaign, valCol:mc.revenue, metric:'sum', title:'Campanhas prontas para escalar (maior receita)' },
+    ];
+  }
+  if (focus === 'diagnostico') {
+    return [
+      { id:'w1', type:'media-table', title:'Campanhas com menor ROAS / maior CPA', special:true, wide:true, sortMode:'worst' },
+      { id:'w2', type:'media-scatter', title:'Matriz de Eficiência de Mídia', special:true },
+    ];
+  }
+  if (focus === 'performance') {
+    return [
+      { id:'w1', type:'media-scatter', title:'Matriz de Eficiência de Mídia', special:true, wide:true },
+      { id:'w2', type:'bar-h', dim:mc.channel, valCol:mc.revenue, metric:'sum', title:'Ranking por Canal' },
+      { id:'w3', type:'bar-h', dim:mc.product, valCol:mc.revenue, metric:'sum', title:'Ranking por Linha de Produto' },
+    ];
+  }
+  return generateTemplateWidgets('marketing');
 }
 const FOCUS_OPTIONS = [
   ['geral','📊 Visão Executiva Geral'],
@@ -1353,6 +1470,11 @@ function buildDashboard() {
   refreshDashboardData();
 }
 function applyTemplate(name, opts={}) {
+  if (name === 'marketing' && opts.resetWidgets && !isMarketingDataset()) {
+    parseFile(MARKETING_SAMPLE_CSV);
+    runCleaningPipeline();
+    finalizeCleaning();
+  }
   state.template = name;
   updateTemplateBarActive();
   if (opts.resetWidgets) { state.widgets = generateTemplateWidgets(name); state.filters = {}; state.focus = 'geral'; updateFocusDropdownActive(); }
@@ -1361,7 +1483,7 @@ function applyTemplate(name, opts={}) {
 }
 function renderTemplateBar() {
   const bar = document.getElementById('templateBar');
-  const templates = [['vendas','Vendas & Comercial'],['financeiro','Financeiro (FP&A)'],['rh','RH & Operações']];
+  const templates = [['vendas','Vendas & Comercial'],['financeiro','Financeiro (FP&A)'],['rh','RH & Operações'],['marketing','Marketing & Performance']];
   bar.innerHTML = templates.map(([key,label])=>`<button class="template-btn" data-tpl="${key}">${label}</button>`).join('');
   bar.querySelectorAll('.template-btn').forEach(btn => btn.addEventListener('click', () => applyTemplate(btn.dataset.tpl, { resetWidgets:true })));
   updateTemplateBarActive();
@@ -1381,7 +1503,7 @@ function refreshDashboardData() {
   updateVacationButtonVisibility();
 }
 function renderKpis(kpis) {
-  document.getElementById('kpiRow').innerHTML = kpis.map(k=>`<div class="kpi-card"><div class="lbl">${k.label}</div><div class="val mono">${k.value}</div></div>`).join('');
+  document.getElementById('kpiRow').innerHTML = kpis.map(k=>`<div class="kpi-card"><div class="lbl">${k.label}</div><div class="val mono${k.badgeClass?' kpi-'+k.badgeClass:''}">${k.value}</div></div>`).join('');
   const dotsEl = document.getElementById('kpiDots');
   dotsEl.innerHTML = kpis.map((_,i)=>`<span class="kpi-dot ${i===0?'active':''}" data-dot="${i}"></span>`).join('');
   setupKpiScrollSync();
@@ -1402,7 +1524,7 @@ function setupKpiScrollSync() {
 }
 /* ============================= EXECUTIVE INSIGHTS ============================= */
 function computeInsights(rows) {
-  const val = state.valCol;
+  const val = (state.template==='marketing' && state.marketingCols && state.marketingCols.revenue) ? state.marketingCols.revenue : state.valCol;
   const insights = [];
   const total = sumBy(rows, val);
   const catCol = state.catCols.find(c=>c.toLowerCase().includes('categoria')) || state.catCols[0];
@@ -1453,11 +1575,15 @@ const CHART_EXPLANATIONS = {
   histogram: 'Mostra como os valores se distribuem em faixas, revelando concentração e dispersão.',
   scatter: 'Cruza contagem e valor total por grupo para revelar correlações não óbvias.',
   table: 'Detalhamento analítico linha a linha, ordenável por qualquer métrica.',
+  'media-scatter': 'Mapeia campanhas eficientes (alto ROAS) versus gargalos que consomem verba sem retorno.',
+  'media-combo': 'Mede a cadência de investimento e a curva de resposta em vendas no tempo.',
+  'media-table': 'Ranking detalhado de campanhas com CPA e ROAS lado a lado, com destaque para outliers.',
 };
 function explainFor(type) { return CHART_EXPLANATIONS[type] || 'Visualização dos dados agregados.'; }
 
 /* ============================= PROACTIVE INVESTIGATION CARDS ============================= */
 function computeInvestigationCards() {
+  if (state.template === 'marketing' && isMarketingDataset()) return computeMarketingInvestigationCards();
   const rows = getVisibleRows();
   const val = state.valCol;
   const cards = [];
@@ -1487,6 +1613,33 @@ function computeInvestigationCards() {
     }
   }
   return cards.slice(0,2);
+}
+function computeMarketingInvestigationCards() {
+  const rows = getVisibleRows();
+  const mc = state.marketingCols;
+  const cards = [];
+  cards.push({ label:'Identificar campanhas com ROAS abaixo de 2.0x para corte de verba', run: () => {
+    const groups = {};
+    rows.forEach(r => { const k=r[mc.campaign]||'—'; if (!groups[k]) groups[k]={invest:0,revenue:0}; groups[k].invest += r[mc.invest]||0; groups[k].revenue += r[mc.revenue]||0; });
+    const low = Object.entries(groups).filter(([k,g]) => g.invest>0 && (g.revenue/g.invest) < 2).map(([k])=>k);
+    if (low.length) { state.filters[mc.campaign] = low; refreshDashboardData(); }
+    const totalWasted = low.reduce((s,k)=> s + groups[k].invest, 0);
+    addChat('assistant', low.length
+      ? `Isolei ${fmtInt(low.length)} campanha(s) com ROAS abaixo de 2,0x, somando ${fmtCurrency(totalWasted)} em investimento pouco eficiente. Considere pausar ou revisar a segmentação delas.`
+      : 'Nenhuma campanha com ROAS abaixo de 2,0x no recorte atual — bom sinal.');
+  }});
+  cards.push({ label:'Analisar canal mais eficiente em Custo por Aquisição (CPA)', run: () => {
+    const groups = {};
+    rows.forEach(r => { const k=r[mc.channel]||'—'; if (!groups[k]) groups[k]={invest:0,conv:0}; groups[k].invest += r[mc.invest]||0; groups[k].conv += r[mc.conversions]||0; });
+    const withCpa = Object.entries(groups).filter(([k,g])=>g.conv>0).map(([k,g])=>({ canal:k, cpa: g.invest/g.conv }));
+    withCpa.sort((a,b)=>a.cpa-b.cpa);
+    const best = withCpa[0];
+    if (best) { state.filters[mc.channel] = [best.canal]; refreshDashboardData(); }
+    addChat('assistant', best
+      ? `${best.canal} é o canal mais eficiente em CPA, a ${fmtCurrency(best.cpa)} por conversão. Isolei as campanhas desse canal no dashboard.`
+      : 'Não há dados suficientes de conversão para calcular CPA por canal.');
+  }});
+  return cards;
 }
 function renderInvestigationCards() {
   const wrap = document.getElementById('investigationCards');
@@ -1881,6 +2034,7 @@ function renderChart(w) {
   const el = document.getElementById('chart-'+w.id);
   if (!el) return;
   if (w.type === 'table') { renderTableWidget(w, el); return; }
+  if (w.type === 'media-table') { renderMediaTable(w, el); return; }
   if (state.charts[w.id]) state.charts[w.id].dispose();
   const chart = echarts.init(el, null, { renderer:'canvas' });
   state.charts[w.id] = chart;
@@ -1889,7 +2043,7 @@ function renderChart(w) {
   let option;
 
   if (w.type === 'donut') {
-    const { labels, values } = aggregate(rows, w.dim, w.metric, state.valCol);
+    const { labels, values } = aggregate(rows, w.dim, w.metric, w.valCol || state.valCol);
     option = {
       color: colors.palette,
       tooltip: { ...tooltipStyle(), trigger:'item', valueFormatter: valueFormatterFor(w) },
@@ -1897,7 +2051,7 @@ function renderChart(w) {
       series: [{ type:'pie', radius:['46%','72%'], center:['36%','52%'], avoidLabelOverlap:true, label:{ show:false }, labelLine:{ show:false }, itemStyle:{ borderColor:colors.surface, borderWidth:2 }, data: labels.map((l,i)=>({ name:l, value:values[i] })) }],
     };
   } else if (w.type === 'bar-h') {
-    const { labels, values } = aggregate(rows, w.dim, w.metric, state.valCol);
+    const { labels, values } = aggregate(rows, w.dim, w.metric, w.valCol || state.valCol);
     const idx = values.map((v,i)=>i).sort((a,b)=>values[b]-values[a]);
     const sLabels = idx.map(i=>labels[i]), sValues = idx.map(i=>values[i]);
     option = {
@@ -1925,6 +2079,52 @@ function renderChart(w) {
       xAxis: { name:'Transações', nameLocation:'middle', nameGap:26, type:'value', axisLabel:{ color:colors.text, fontSize:10 }, splitLine:{ lineStyle:{ color:colors.grid } } },
       yAxis: { name:'Valor total', nameLocation:'middle', nameGap:50, type:'value', axisLabel:{ color:colors.text, fontSize:10, formatter:v=>fmtCompactCurrency(v) }, splitLine:{ lineStyle:{ color:colors.grid } } },
       series: [{ type:'scatter', symbolSize:16, data, itemStyle:{ opacity:0.85 }, label:{ show:true, formatter:p=>p.data.name, position:'top', color:colors.text, fontSize:10 } }],
+    };
+  } else if (w.type === 'media-scatter') {
+    const mc = state.marketingCols;
+    const dim = w.dim || mc.campaign;
+    const groups = {};
+    rows.forEach(r => {
+      const key = r[dim] ?? '—';
+      if (!groups[key]) groups[key] = { invest:0, revenue:0, conv:0 };
+      groups[key].invest += r[mc.invest]||0;
+      groups[key].revenue += r[mc.revenue]||0;
+      groups[key].conv += r[mc.conversions]||0;
+    });
+    const entries = Object.entries(groups).map(([k,g]) => ({ name:k, invest:g.invest, roas: g.invest>0 ? g.revenue/g.invest : 0, conv:g.conv, revenue:g.revenue }));
+    const maxConv = Math.max(...entries.map(e=>e.conv), 1);
+    option = {
+      color: colors.palette,
+      grid: { left:56, right:24, top:20, bottom:44 },
+      tooltip: { ...tooltipStyle(), trigger:'item', formatter: (p) => `<b>${p.data.name}</b><br/>Investimento: ${fmtCurrency(p.data.value[0])}<br/>ROAS: ${p.data.value[1].toFixed(2).replace('.',',')}x<br/>Conversões: ${fmtInt(p.data.rawConv)}<br/>Receita: ${fmtCurrency(p.data.rawRevenue)}` },
+      xAxis: { name:'Investimento', nameLocation:'middle', nameGap:28, type:'value', axisLabel:{ color:colors.text, fontSize:10, formatter:v=>fmtCompactCurrency(v) }, splitLine:{ lineStyle:{ color:colors.grid } } },
+      yAxis: { name:'ROAS', nameLocation:'middle', nameGap:36, type:'value', axisLabel:{ color:colors.text, fontSize:10, formatter:v=>v+'x' }, splitLine:{ lineStyle:{ color:colors.grid } } },
+      series: [{ type:'scatter', data: entries.map(e=>({ name:e.name, value:[Math.round(e.invest*100)/100, Math.round(e.roas*100)/100], rawConv:e.conv, rawRevenue:e.revenue, symbolSize: 12 + (e.conv/maxConv)*30 })), itemStyle:{ opacity:0.82, color:colors.accent }, label:{ show:true, formatter:p=>p.name.length>16?p.name.slice(0,15)+'…':p.name, position:'top', color:colors.text, fontSize:9 } }],
+    };
+  } else if (w.type === 'media-combo') {
+    const mc = state.marketingCols;
+    const groups = {};
+    rows.forEach(r => {
+      const key = r[state.dateCol] ?? '—';
+      if (!groups[key]) groups[key] = { invest:0, revenue:0 };
+      groups[key].invest += r[mc.invest]||0;
+      groups[key].revenue += r[mc.revenue]||0;
+    });
+    let labels = Object.keys(groups);
+    if (labels.length && labels.every(l=>/^\d{4}-\d{2}-\d{2}$/.test(l))) labels = labels.sort();
+    const investData = labels.map(l=>groups[l].invest);
+    const revenueData = labels.map(l=>groups[l].revenue);
+    option = {
+      color: [colors.negative, colors.positive],
+      grid: { left:60, right:20, top:34, bottom:36 },
+      legend: { top:0, textStyle:{ color:colors.text, fontSize:11 } },
+      tooltip: { ...tooltipStyle(), trigger:'axis', valueFormatter: v=>fmtCurrency(v) },
+      xAxis: { type:'category', data:labels, axisLabel:{ color:colors.text, fontSize:10 }, axisLine:{ lineStyle:{ color:colors.grid } } },
+      yAxis: { type:'value', axisLabel:{ color:colors.text, fontSize:10, formatter:v=>fmtCompactCurrency(v) }, splitLine:{ lineStyle:{ color:colors.grid } } },
+      series: [
+        { name:'Investimento', type:'bar', data:investData, itemStyle:{ borderRadius:[4,4,0,0] }, barWidth:'45%' },
+        { name:'Receita', type:'line', data:revenueData, smooth:true, itemStyle:{ color:colors.positive }, lineStyle:{ width:2.5 } },
+      ],
     };
   } else if (w.type === 'waterfall') {
     const pos = sumBy(rows.filter(r=>!isDeduction(r)), state.valCol);
@@ -1976,7 +2176,7 @@ function renderChart(w) {
       series: [{ type:'bar', data:values, itemStyle:{ borderRadius:[4,4,0,0] }, barWidth:'60%' }],
     };
   } else {
-    const { labels, values } = aggregate(rows, w.dim, w.metric, state.valCol);
+    const { labels, values } = aggregate(rows, w.dim, w.metric, w.valCol || state.valCol);
     option = {
       color: colors.palette,
       grid: { left:56, right:16, top:20, bottom:30 },
@@ -2015,6 +2215,45 @@ function renderTableWidget(w, el) {
     if (w.sortKey===k) w.sortDir = w.sortDir==='asc'?'desc':'asc'; else { w.sortKey=k; w.sortDir='desc'; }
     renderTableWidget(w, el);
   }));
+}
+
+function renderMediaTable(w, el) {
+  const rows = getVisibleRows();
+  const mc = state.marketingCols;
+  const dim = w.dim || mc.campaign;
+  const groups = {};
+  rows.forEach(r => {
+    const key = r[dim] ?? '—';
+    if (!groups[key]) groups[key] = { invest:0, revenue:0, conv:0, canal: r[mc.channel] };
+    groups[key].invest += r[mc.invest]||0;
+    groups[key].revenue += r[mc.revenue]||0;
+    groups[key].conv += r[mc.conversions]||0;
+  });
+  let data = Object.entries(groups).map(([k,g]) => ({
+    campanha:k, canal:g.canal||'—', custo:g.invest, conversoes:g.conv,
+    cpa: g.conv>0 ? g.invest/g.conv : null,
+    receita:g.revenue, roas: g.invest>0 ? g.revenue/g.invest : null,
+  }));
+  if (w.sortMode === 'worst') data.sort((a,b) => (a.roas??0) - (b.roas??0));
+  else data.sort((a,b) => b.receita - a.receita);
+  const cpaValues = data.filter(d=>d.cpa!==null).map(d=>d.cpa);
+  const avgCpa = cpaValues.length ? cpaValues.reduce((a,b)=>a+b,0)/cpaValues.length : 0;
+  el.innerHTML = `<div class="table-widget-wrap"><table class="audit-table responsive-table media-perf-table">
+    <thead><tr><th>Campanha</th><th>Canal</th><th>Custo</th><th>Conversões</th><th>CPA</th><th>Receita</th><th>ROAS</th></tr></thead>
+    <tbody>${data.map(d => {
+      const roasClass = d.roas===null ? '' : d.roas>=4 ? 'cell-good' : d.roas<2 ? 'cell-bad' : '';
+      const cpaClass = (d.cpa!==null && avgCpa>0 && d.cpa>avgCpa) ? 'cell-bad' : '';
+      return `<tr>
+        <td data-label="Campanha">${d.campanha}</td>
+        <td data-label="Canal">${d.canal}</td>
+        <td data-label="Custo" class="mono">${fmtCurrency(d.custo)}</td>
+        <td data-label="Conversões" class="mono">${fmtInt(d.conversoes)}</td>
+        <td data-label="CPA" class="mono ${cpaClass}">${d.cpa!==null ? fmtCurrency(d.cpa) : '—'}</td>
+        <td data-label="Receita" class="mono">${fmtCurrency(d.receita)}</td>
+        <td data-label="ROAS" class="mono ${roasClass}">${d.roas!==null ? d.roas.toFixed(2).replace('.',',')+'x' : '—'}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="7" style="text-align:center; color:var(--text-tertiary); padding:20px;">Sem dados de campanhas no recorte atual.</td></tr>`}</tbody>
+  </table></div>`;
 }
 
 function attachWidgetEvents() {
